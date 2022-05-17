@@ -1,13 +1,13 @@
 Declare @psize				   int;
 Declare @filter				   varchar(max);
-Declare @filter_action   varchar(max);
+Declare @filter_action                     varchar(max);
 
 
 
 
 set @psize				    = 1000000; -- set to partition row size you want for each chunk
 set @filter				    = 'Value'; -- if present in table then add filter condition, add your condition here 
-set @filter_action		= 'where my filter = True'; -- my filter condition , add your where clause here
+set @filter_action		            = 'where my filter = True'; -- my filter condition , add your where clause here
 
 
 USE {MY_DATABASE}; -- add your database name here
@@ -20,7 +20,6 @@ case
 end																								                        as filter_statement,
 * 
 from  INFORMATION_SCHEMA.COLUMNS
-where TABLE_NAME LIKE '%StaplesUS_HIT%' or TABLE_NAME LIKE '%StaplesUS_Page%'
 ),
 
 
@@ -40,12 +39,12 @@ SELECT  TABLE_CATALOG CAT,
 subject_areas as 
 (
 Select
-TABLE_CATALOG									CAT,
-TABLE_SCHEMA									SCH,
+TABLE_CATALOG									        CAT,
+TABLE_SCHEMA									        SCH,
 TABLE_NAME										TBL,
 max(isnull(case 
               when upper(TABLE_NAME) like '%RETAIL%'	then 'retail-data'
-           end,'retail-data'))	                                                      as subject_area
+           end,'retail-data'))	                                                        as subject_area
 from   [INFORMATION_SCHEMA].[COLUMNS]
 group by TABLE_CATALOG,									
 TABLE_SCHEMA	,								
@@ -54,36 +53,36 @@ TABLE_NAME
 
 
 base as (
-Select TABLE_CATALOG																				                            as DATABASE_NAME,
+Select TABLE_CATALOG																				                                        as DATABASE_NAME,
 TABLE_SCHEMA																						                                as TABLE_SCHEMA,
-TABLE_NAME																							                                as TABLE_NAME,
-COLUMN_NAME																							                                as 'source.name',
-DW_Orders.[dbo].[ReplaceASCII](replace([COLUMN_NAME],'value','raw_value'))							as 'sink.name',
+TABLE_NAME																							                        as TABLE_NAME,
+COLUMN_NAME																							                        as 'source.name',
+DW_Orders.[dbo].[ReplaceASCII](replace([COLUMN_NAME],'value','raw_value'))		as 'sink.name',
 case 
 	when PATINDEX('%[^_0-9A-Za-z]%',COLUMN_NAME)>1 then 'True' 
-end																									                                    as Uncompatible_Column,
-sub.subject_area																					                              as TARGET_SUBJECT_AREA,
- fltr.Filter_Statements																				                          as filter_statement,
+end																									                as Uncompatible_Column,
+sub.subject_area																					                                as TARGET_SUBJECT_AREA,
+ fltr.Filter_Statements																				                                        as filter_statement,
 '{"DATABASE_NAME":"'+TABLE_CATALOG+'",'+'"TABLE_SCHMEA":"'+TABLE_SCHEMA+'",'+'"TABLE_NAME":"'+TABLE_NAME+'",'+'"TARGET_SUBJECT_AREA":"'+sub.subject_area+'",'+'"FILTER_STATEMENT":"'+
 ''
-+'"}'																								                                    as JSON_OBJECT,
-CURRENT_TIMESTAMP																					                              as CREATED_ON,
-CAST( GETDATE() AS Date )																			                          as EFFECTIVE_DATE,
-CURRENT_TIMESTAMP                                                                       as LAST_MODIFIED,
++'"}'																								                        as JSON_OBJECT,
+CURRENT_TIMESTAMP																					                              	as CREATED_ON,
+CAST( GETDATE() AS Date )																			                          		as EFFECTIVE_DATE,
+CURRENT_TIMESTAMP                                                                       																as LAST_MODIFIED,
 case when upper(TABLE_NAME) like '%NOT IN USE%' then 0
 when upper(TABLE_NAME) like '%ADF_CONTROL%' then 0
 else 1
-end																									                                    as ACTIVE,
-''																									                                    as COMMENT
-from [INFORMATION_SCHEMA].[COLUMNS]													                            as Sch
-left outer join filter_conditions																	                      as fltr 
-	on Sch.TABLE_CATALOG	= fltr.CAT
-	and Sch.TABLE_SCHEMA	= fltr.SCH
+end																									                as ACTIVE,
+''																									                as COMMENT
+from [INFORMATION_SCHEMA].[COLUMNS]													                            							as Sch
+left outer join filter_conditions																	                     				as fltr 
+	on Sch.TABLE_CATALOG	        = fltr.CAT
+	and Sch.TABLE_SCHEMA	        = fltr.SCH
 	and Sch.TABLE_NAME		= fltr.TBL
 	and Sch.COLUMN_NAME		= fltr.COL
-left join subject_areas																		                              as sub 
-	on Sch.TABLE_CATALOG	= sub.CAT
-	and Sch.TABLE_SCHEMA	= sub.SCH
+left join subject_areas																		                              				as sub 
+	on Sch.TABLE_CATALOG	        = sub.CAT
+	and Sch.TABLE_SCHEMA	        = sub.SCH
 	and Sch.TABLE_NAME		= sub.TBL
 where TABLE_NAME LIKE '%StaplesUS_HIT%' or TABLE_NAME LIKE '%StaplesUS_Page%'						
 ),
@@ -107,13 +106,13 @@ SELECT TOP 1000
         a3.name																						AS SchemaName,
         a2.name																						AS TableName,
         a1.rows																						AS Row_Count,
-        (a1.reserved )* 8.0 / 1024																	AS reserved_mb,
-        a1.data * 8.0 / 1024																		AS data_mb,
-        (CASE WHEN (a1.used ) > a1.data THEN (a1.used ) - a1.data ELSE 0 END) * 8.0 / 1024			AS index_size_mb,
-        (CASE WHEN (a1.reserved ) > a1.used THEN (a1.reserved ) - a1.used ELSE 0 END) * 8.0 / 1024	AS unused_mb
+        (a1.reserved )* 8.0 / 1024																			AS reserved_mb,
+        a1.data * 8.0 / 1024																				AS data_mb,
+        (CASE WHEN (a1.used ) > a1.data THEN (a1.used ) - a1.data ELSE 0 END) * 8.0 / 1024												AS index_size_mb,
+        (CASE WHEN (a1.reserved ) > a1.used THEN (a1.reserved ) - a1.used ELSE 0 END) * 8.0 / 1024											AS unused_mb
     FROM    (   SELECT
                 ps.object_id,
-                SUM ( CASE WHEN (ps.index_id < 2) THEN row_count    ELSE 0 END )					AS rows,
+                SUM ( CASE WHEN (ps.index_id < 2) THEN row_count    ELSE 0 END )													AS rows,
                 SUM (ps.reserved_page_count) AS reserved,
                 SUM (CASE   WHEN (ps.index_id < 2) THEN (ps.in_row_data_page_count + ps.lob_used_page_count + ps.row_overflow_used_page_count)
                             ELSE (ps.lob_used_page_count + ps.row_overflow_used_page_count) END
